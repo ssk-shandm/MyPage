@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { normalizeRelease, isValidRelease, repositories } from '../lib/releases.js'
+import { normalizeRelease, isValidRelease, repositories, extractReleaseSummary, validateSummary } from '../lib/releases.js'
+import { readFileSync } from 'node:fs'
 import { getProjectRelease, FRESH_MS, RETAIN_SECONDS } from '../functions/api/releases.js'
 
 const repo = repositories.biejuan
@@ -34,6 +35,45 @@ test('normalizes an uploaded x64 installer with verified metadata', () => {
   assert.equal(data.version, 'v0.3.0')
   assert.equal(data.installer.size, 7000000)
   assert.equal(isValidRelease(data, repo), true)
+})
+
+test('extracts only opening summary bullets, stopping before detailed notes', () => {
+  const body = '# 别卷 v0.3.0\n\n## 更新摘要\n- 新增题库管理。\n- 修复导入问题。\n\n## 详细更新\n- 私人日志不应展示。\n## 安装说明\n更多内容。'
+  assert.deepEqual(extractReleaseSummary(body), ['新增题库管理。', '修复导入问题。'])
+  assert.deepEqual(extractReleaseSummary('\uFEFF' + body.replaceAll('\n', '\r\n')), ['新增题库管理。', '修复导入问题。'])
+  assert.deepEqual(extractReleaseSummary('## 更新摘要\n- 新增功能。'), ['新增功能。'])
+  assert.deepEqual(extractReleaseSummary('## 更新摘要\n- 新增功能。\n### 更多细节\n- 不展示。'), ['新增功能。'])
+})
+
+test('missing, misplaced, empty or malformed summary does not guess from detailed notes', () => {
+  for (const body of [null, '', '旧版更新内容', '## 修复\n- 改动\n## 更新摘要\n- 不该被找到',
+    '```md\n## 更新摘要\n- 示例\n```', '介绍文字\n## 更新摘要\n- 新增',
+    '## 更新摘要\n\n## 详细更新\n- 细节', '## 更新摘要\n说明段落',
+    '## 更新摘要\n- 第一行\n  第二行', '## 更新摘要\n- 第一条\n- 第二条\n- 第三条\n- 第四条',
+    '## 更新摘要\n- ```js\nalert(1)\n```', '## 更新摘要\n- <script>alert(1)</script>',
+    '## 更新摘要\n- [链接](https://example.com)', '## 更新摘要\n- **加粗**',
+    '## 更新摘要\n| 项目 | 内容 |']) {
+    assert.deepEqual(extractReleaseSummary(body), [], JSON.stringify(body))
+  }
+})
+
+test('enforces a total 200-codepoint summary limit without truncation or splitting emoji', () => {
+  assert.deepEqual(extractReleaseSummary('## 更新摘要\n- ' + '🙂'.repeat(200)), ['🙂'.repeat(200)])
+  assert.deepEqual(extractReleaseSummary('## 更新摘要\n- ' + '中'.repeat(201)), [])
+  assert.deepEqual(validateSummary(['中'.repeat(100), '文'.repeat(101)]), [])
+  for (const items of [null, 'text', [], [null], [''], ['one\ntwo'], ['one\ttwo'], ['a', 'b', 'c', 'd']]) {
+    assert.deepEqual(validateSummary(items), [])
+  }
+})
+
+test('checked-in release template conforms to the extraction contract', () => {
+  const body = readFileSync(new URL('../docs/RELEASE_TEMPLATE.md', import.meta.url), 'utf8')
+  assert.equal(extractReleaseSummary(body).length, 3)
+})
+
+test('normalizes summary as part of the same version snapshot; old bodies yield an empty summary', () => {
+  assert.deepEqual(normalizeRelease({ ...fixture(), body: '## 更新摘要\n- 修复题库导入。\n\n## 细节\n其他' }, repo).summary, ['修复题库导入。'])
+  assert.deepEqual(normalizeRelease(fixture(), repo).summary, [])
 })
 
 test('supports GrabMeta underscore naming and encoded non-ASCII asset names', () => {

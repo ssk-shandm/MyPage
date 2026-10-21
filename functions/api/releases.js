@@ -6,7 +6,7 @@ export const RETAIN_SECONDS = 24 * 60 * 60
 export async function getProjectRelease(id, { cache, origin, fetcher, now, token }) {
   const repository = repositories[id]
   // Ignore visitor query parameters so they cannot bypass the cache or choose a repository.
-  const key = new Request(`${origin}/__release-cache/v1/${id}`)
+  const key = new Request(`${origin}/__release-cache/v2/${id}`)
   let previous = null
   let retryAt = 0
   try {

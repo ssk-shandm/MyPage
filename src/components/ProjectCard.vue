@@ -12,7 +12,10 @@ defineProps({ project: { type: Object, required: true } })
         <li v-for="tag in project.tags" :key="tag">{{ tag }}</li>
       </ul>
     </div>
-    <p class="card-summary">{{ project.summary }}</p>
+    <ul v-if="project.summaryItems?.length" class="card-summary summary-list" aria-label="本次更新摘要">
+      <li v-for="(item, index) in project.summaryItems" :key="index">{{ item }}</li>
+    </ul>
+    <p v-else class="card-summary">{{ project.summary }}</p>
     <div class="card-actions">
       <a class="download" :href="project.downloadUrl">{{ project.downloadLabel }}</a>
       <p class="card-info">{{ project.info }}</p>

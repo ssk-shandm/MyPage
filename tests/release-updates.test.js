@@ -65,3 +65,26 @@ test('formats installer sizes in MiB with two decimals', () => {
   assert.equal(formatSize(10485760), '10.00 MiB')
   assert.equal(formatSize(6815744), '6.50 MiB')
 })
+
+test('merges the validated release summary without changing the project introduction', () => {
+  const biejuan = release('biejuan')
+  biejuan.release.summary = ['新增题库管理。', '修复导入问题。']
+  const result = applyReleaseData(payload({ biejuan }), staticProjects)
+  const project = byId(result.projects, 'biejuan')
+  assert.deepEqual(project.summaryItems, ['新增题库管理。', '修复导入问题。'])
+  assert.equal(project.description, byId(staticProjects, 'biejuan').description)
+  assert.deepEqual(byId(result.projects, 'grabmeta').summaryItems, [])
+})
+
+test('invalid summaries do not block version updates or keep an old version summary', () => {
+  for (const summary of [undefined, null, '<script>bad</script>', ['x'.repeat(201)], ['<img src=x onerror=alert(1)>'], ['a', 'b', 'c', 'd']]) {
+    const biejuan = release('biejuan')
+    biejuan.release.summary = summary
+    const initial = staticProjects.map(project => ({ ...project, summaryItems: ['旧版本的摘要。'] }))
+    const result = applyReleaseData(payload({ biejuan }), initial)
+    const project = byId(result.projects, 'biejuan')
+    assert.deepEqual(project.summaryItems, [])
+    assert.equal(project.version, 'v9.0.0')
+    assert.match(project.summary, /请查看本版本发布说明/)
+  }
+})

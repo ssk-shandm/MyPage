@@ -1,4 +1,4 @@
-import { isValidRelease, repositories } from '../../lib/releases.js'
+import { isValidRelease, repositories, validateSummary } from '../../lib/releases.js'
 
 export const NOTICES = {
   pending: '正在查询最新发布信息；同步完成前显示 2026-10-21 核实的历史版本。',
@@ -39,6 +39,7 @@ export function applyReleaseData(data, projects) {
         ? `${formatSize(release.installer.size)} / ${date}（UTC）`
         : `${date}（UTC）/ 未找到唯一可用的 Windows x64 安装包`,
       summary: SYNCED_SUMMARY,
+      summaryItems: validateSummary(release.summary),
       note: SYNCED_NOTE,
     }
   })
