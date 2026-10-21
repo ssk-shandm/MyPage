@@ -17,8 +17,12 @@ defineProps({ project: { type: Object, required: true } })
     </ul>
     <p v-else class="card-summary">{{ project.summary }}</p>
     <div class="card-actions">
-      <a class="download" :href="project.downloadUrl">{{ project.downloadLabel }}</a>
+      <a class="download" :href="project.downloadHref ?? project.downloadUrl">{{ project.downloadLabel }}</a>
       <p class="card-info">{{ project.info }}</p>
+      <p v-if="project.hasInstaller" class="card-mirror">
+        加速下载不可用时，改用
+        <a :href="project.downloadUrl" target="_blank" rel="noreferrer">GitHub 原始地址</a>
+      </p>
       <div class="card-links">
         <a :href="`${project.source}/releases/latest`" target="_blank" rel="noreferrer">最新发布与说明</a>
         <a :href="project.releaseUrl" target="_blank" rel="noreferrer">本版本说明</a>

@@ -1,4 +1,4 @@
-import { isValidRelease, repositories, validateSummary } from '../../lib/releases.js'
+import { isValidRelease, proxiedUrl, repositories, validateSummary } from '../../lib/releases.js'
 
 export const NOTICES = {
   pending: '正在查询最新发布信息；同步完成前显示 2026-10-21 核实的历史版本。',
@@ -11,7 +11,7 @@ export const NOTICES = {
 const INSTALLER_LABEL = '下载 Windows x64 安装包'
 const RELEASE_PAGE_LABEL = '查看发布页（暂无 Windows x64 安装包）'
 const SYNCED_SUMMARY = '版本更新内容与安装注意事项，请查看本版本发布说明。'
-const SYNCED_NOTE = '下载文件由 GitHub Releases 提供。发布包可能未签名，请核对来源；安装或升级前请阅读对应版本说明并备份重要数据。'
+const SYNCED_NOTE = '下载经由第三方加速服务（ghproxy.net）转发 GitHub Releases 文件；如无法下载，可改用 GitHub 原始地址。发布包可能未签名，请核对来源；安装或升级前请阅读对应版本说明并备份重要数据。'
 
 export function formatSize(bytes) {
   return `${(bytes / 1024 ** 2).toFixed(2)} MiB`
@@ -34,7 +34,10 @@ export function applyReleaseData(data, projects) {
       version: release.version,
       releaseUrl: release.releaseUrl,
       downloadUrl: release.installer?.url || release.releaseUrl,
+      // 安装包走加速前缀；没有安装包时仍是发布页，不加前缀。
+      downloadHref: release.installer ? proxiedUrl(release.installer.url) : release.releaseUrl,
       downloadLabel: release.installer ? INSTALLER_LABEL : RELEASE_PAGE_LABEL,
+      hasInstaller: Boolean(release.installer),
       info: release.installer
         ? `${formatSize(release.installer.size)} / ${date}（UTC）`
         : `${date}（UTC）/ 未找到唯一可用的 Windows x64 安装包`,
