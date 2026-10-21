@@ -61,7 +61,7 @@ test('sends releases without installers to the release page, never to an older i
   assert.equal(result.notice, NOTICES.partial)
 })
 
-test('rejects invalid release data and leaves static metadata untouched', () => {
+test('rejects invalid release data and keeps the verified static snapshot', () => {
   const bad = release('biejuan')
   bad.release.installer.url = 'https://evil.test/app_x64-setup.exe'
   for (const data of [
@@ -71,8 +71,27 @@ test('rejects invalid release data and leaves static metadata untouched', () => 
     { projects: { biejuan: { ...release('biejuan'), release: { ...release('biejuan').release, releaseUrl: 'https://evil.test/x' } } } },
     { projects: { biejuan: { ...release('biejuan'), release: { ...release('biejuan').release, publishedAt: 'nope' } } } },
   ]) {
-    assert.throws(() => applyReleaseData(data, staticProjects), /No valid release information/)
+    const result = applyReleaseData(data, staticProjects)
+    assert.equal(result.updated, 0)
+    assert.deepEqual(result.projects, staticProjects)
+    assert.equal(result.notice, NOTICES.unavailable)
   }
+})
+
+test('explains GitHub anonymous rate limiting instead of a generic sync failure', () => {
+  const limited = (id) => ({
+    release: null, checkedAt: null, status: 'unavailable',
+    error: { code: 'github_rate_limited', status: 403, retryAt: Date.now() + 600000 },
+  })
+  const result = applyReleaseData({ projects: { biejuan: limited('biejuan'), grabmeta: limited('grabmeta') } }, staticProjects)
+  assert.equal(result.rateLimited, true)
+  assert.equal(result.notice, NOTICES.rateLimited)
+  assert.match(result.notice, /频率上限/)
+  assert.deepEqual(result.projects, staticProjects)
+  // 只有部分项目被限流时，仍按“部分无法同步”处理，不夸大原因。
+  const mixed = applyReleaseData(payload({ grabmeta: limited('grabmeta') }), staticProjects)
+  assert.equal(mixed.rateLimited, false)
+  assert.equal(mixed.notice, NOTICES.partial)
 })
 
 test('labels stale cached results honestly', () => {

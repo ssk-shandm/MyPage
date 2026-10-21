@@ -44,9 +44,11 @@ npm run dev
 - 主页只提取 Release 开头的 `## 更新摘要` 列表，并以纯文本展示；不渲染 Release 正文 HTML。详细变化及平台限制通过“本版本说明”查看。“最新发布与说明”始终指向仓库的 `/releases/latest`。
 - 下载按钮指向第三方加速服务 `https://ghproxy.net/` 转发的 GitHub Releases 直链。接口返回的 `installer.url`（含版本号与真实文件名）经过校验后，由 `lib/releases.js` 的 `proxiedUrl()` 加上前缀；文件名随每个版本变化，所以不要在代码里写死安装包名。卡片下方同时保留“GitHub 原始地址”，代理不可用时可直接回退。
 - 安装包不由 Pages 或 Functions 转发，也不占用 Functions 配额；代理服务本身是否可用不在本站控制范围内。API 不可用不影响源码和发布页链接。
-- 静态兜底快照核对于 2026-10-21：别卷 v0.2.1、GrabMeta v2.3.2，建议不定期手动更新兜底数据。
+- 静态兜底快照核对于 2026-10-21：别卷 v0.2.2、GrabMeta v2.3.2，建议不定期手动更新兜底数据。
 
 公开仓库默认无需 Token。若 GitHub 匿名 API 限流，可在 **Cloudflare Pages 项目 → Settings → Variables and Secrets** 中添加服务端 Secret `GITHUB_TOKEN`，保存后重新部署；不要使用 `VITE_` 前缀，不要提交 Token，不必向此聊天提供 Token。只需要公开仓库读取能力，不要授予写权限。此功能会消耗 Pages Functions 免费额度，静态资源访问不会触发函数（由 `public/_routes.json` 限定）。
+
+**关于匿名限流**：GitHub 对未认证请求按来源 IP 限制每小时 60 次。Cloudflare 的出口 IP 由众多 Worker 共享，因此即使本站访问量很小也可能遇到 `github_rate_limited`，页面此时会提示“达到匿名访问频率上限”并保留兜底版本。配置 `GITHUB_TOKEN` 后配额提升到每小时 5000 次，是按账号而非按 IP 计算，能彻底避免这个问题。这也是目前唯一推荐的根治办法。
 
 发布流程：先在 GitHub 创建草稿 Release，上传完整安装包，再正式发布。主页通常在当前数据中心的缓存到期后、下次访问时读取新版本，不需要重新部署网站。
 

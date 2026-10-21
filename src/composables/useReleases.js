@@ -13,6 +13,7 @@ export function useReleases(initialProjects, fetcher = fetch) {
         cache: 'no-store',
       })
       if (!response.ok) throw new Error('Release service unavailable')
+      // 接口本身可能只带回错误码，这里仍用兜底数据渲染，只替换提示语。
       const result = applyReleaseData(await response.json(), projects.value)
       projects.value = result.projects
       notice.value = result.notice
