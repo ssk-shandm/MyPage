@@ -175,3 +175,57 @@ test('cache failure still serves GitHub data and server token never appears in t
   assert.equal(result.status, 'live')
   assert.ok(!JSON.stringify(result).includes('test-secret-value'))
 })
+
+test('reports rate limiting and waits for GitHub reset without repeated upstream calls', async () => {
+  let calls = 0
+  const config = options()
+  const reset = Math.floor(config.now / 1000) + 1800
+  config.fetcher = async () => {
+    calls++
+    return new Response('private upstream details', { status: 403, headers: {
+      'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(reset),
+    } })
+  }
+  const first = await getProjectRelease('biejuan', config)
+  assert.equal(first.error.code, 'github_rate_limited')
+  assert.equal(first.error.status, 403)
+  assert.equal(first.retryAt, reset * 1000 + 1000)
+  config.now += 120000
+  const second = await getProjectRelease('biejuan', config)
+  assert.equal(calls, 1)
+  assert.equal(second.error.code, first.error.code)
+  assert.ok(!JSON.stringify(first).includes('private upstream details'))
+})
+
+test('revalidates cached release with ETag and treats 304 as success, clearing old error state', async () => {
+  const config = options({ fetcher: async () => Response.json(fixture(), { headers: { ETag: '"release-1"' } }) })
+  await getProjectRelease('biejuan', config)
+  config.now += FRESH_MS + 1
+  config.fetcher = async () => new Response('', { status: 500 })
+  assert.equal((await getProjectRelease('biejuan', config)).status, 'stale')
+  config.now += 60001
+  config.fetcher = async (_url, init) => {
+    assert.equal(init.headers['If-None-Match'], '"release-1"')
+    return new Response(null, { status: 304 })
+  }
+  const result = await getProjectRelease('biejuan', config)
+  assert.equal(result.status, 'live')
+  assert.equal(result.error, undefined)
+  assert.equal(result.retryAt, undefined)
+  assert.equal(result.release.version, 'v0.3.0')
+  assert.equal(result.checkedAt, config.now)
+  assert.equal((await getProjectRelease('biejuan', config)).status, 'cached')
+})
+
+test('distinguishes auth, timeout, network and invalid response without exposing exception details', async () => {
+  for (const [fetcher, code] of [
+    [async () => new Response('', { status: 401 }), 'github_auth_failed'],
+    [async () => { throw new DOMException('sensitive timeout', 'TimeoutError') }, 'github_timeout'],
+    [async () => { throw Error('sensitive network') }, 'github_network_error'],
+    [async () => new Response('sensitive non-JSON'), 'github_invalid_response'],
+  ]) {
+    const result = await getProjectRelease('biejuan', options({ fetcher }))
+    assert.equal(result.error.code, code)
+    assert.ok(!JSON.stringify(result).includes('sensitive'))
+  }
+})
