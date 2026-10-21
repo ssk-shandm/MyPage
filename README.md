@@ -29,6 +29,6 @@ git push -u origin main
 
 ## 上线前替换
 
-在 `src/main.js` 中替换名字、项目、邮箱和社交链接，完成后删除 `.preview-notice` 模板提示；在 `index.html` 中更新页面标题和描述。页面的颜色、字体与间距集中在 `src/style.css` 顶部的变量中。
+项目数据已写入 `src/main.js`，目前对应 `ssk-shandm/Biejuan` 与 `ssk-shandm/GrabMeta`，下载按钮直达两个仓库的最新 Windows x64 Release 安装包。发布新版本后，请同步更新这里的版本号与下载 URL。页面的颜色、字体与间距集中在 `src/style.css` 顶部的变量中。
 
 当前项目仅包含本地网站和 Git 仓库；GitHub 远程仓库与 Cloudflare Pages 项目需要另行创建、连接。不要将访问令牌或其他密钥写进前端代码或提交到 Git。
