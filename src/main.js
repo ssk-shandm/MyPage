@@ -2,19 +2,44 @@
 
 const projects = [
   { no: '01', title: '别卷', type: '刷题与错题复习 / v0.2.1', description: '面向刷题与错题复习的应用，支持考试、背题、专项练习、错题本、备份恢复与 AI 文档转题库。', tags: ['Vue 3', 'Tauri 2', 'Windows'], tone: 'coral', download: 'https://github.com/ssk-shandm/Biejuan/releases/download/v0.2.1/biejuan-0.2.1-x64-setup.exe', source: 'https://github.com/ssk-shandm/Biejuan', note: '仅 Windows x64；安装包未签名。' },
-  { no: '02', title: 'GrabMeta', type: '媒体下载工具 / v2.3.2', description: 'yt-dlp 中文图形界面，支持视频下载、音频提取、字幕与封面下载，并提供 FFmpeg 和应用内更新。', tags: ['Vue 3', 'Rust', 'Windows'], tone: 'blue', download: 'https://github.com/ssk-shandm/GrabMeta/releases/download/v2.3.2/GrabMeta_2.3.2_x64-setup.exe', source: 'https://github.com/ssk-shandm/GrabMeta', note: '仅 Windows x64；首次启动需联网获取工具。' },
+  { no: '02', title: 'GrabMeta', type: '媒体下载工具 / v2.3.2', description: 'yt-dlp 中文图形界面，支持视频下载、音频提取、字幕与封面下载。首次启动按需获取 yt-dlp、FFmpeg 和 ffprobe，支持应用内更新。', tags: ['Vue 3', 'Rust', 'Windows'], tone: 'blue', download: 'https://github.com/ssk-shandm/GrabMeta/releases/download/v2.3.2/GrabMeta_2.3.2_x64-setup.exe', source: 'https://github.com/ssk-shandm/GrabMeta', note: '仅 Windows x64；首次启动需联网获取工具。仅下载有权获取的内容。' },
 ]
+
+function renderProject(project) {
+  const isBiejuan = project.title === '别卷'
+  return `
+    <article class="project-card ${project.tone}">
+      <div class="project-meta"><span>${project.type}</span></div>
+      <div class="project-body">
+        <h3>${project.title}</h3>
+        <p>${project.description}</p>
+        <div class="tag-list">${project.tags.map((tag) => `<span>${tag}</span>`).join('')}</div>
+      </div>
+      <p class="release-summary">${isBiejuan
+        ? '本次更新：新手指引、手动 Prompt 导出、文档转换规则改进与日志打包。'
+        : '本次更新：修复 Windows 首次安装工具时偶发的“拒绝访问”问题。'}</p>
+      <div class="project-actions">
+        <a class="download-link" href="${project.download}">下载 Windows x64 安装包</a>
+        <span class="release-info">${isBiejuan ? '6.50 MiB / 2026-10-21' : '6.35 MiB / 2026-10-09'}</span>
+        <div class="release-links">
+          <a href="${project.source}/releases/latest" target="_blank" rel="noreferrer">最新发布与说明</a>
+          <a href="${project.source}" target="_blank" rel="noreferrer">GitHub 源码</a>
+        </div>
+        <small>${project.note}${isBiejuan ? ' 此版本不提供 Android 或便携包；升级前建议导出全量备份，真实 Windows 安装与升级验收仍待完成。' : ' 安装包未签名，不是完全离线安装包。'}</small>
+      </div>
+    </article>`
+}
 
 document.querySelector('#app').innerHTML = `
   <div class="site-shell">
     <header class="topbar"><a class="wordmark" href="#top" aria-label="回到首页">SSK<span class="mark">+</span></a><nav class="nav-links" aria-label="主导航"><a href="#projects">项目</a><a href="#about">关于</a><a href="#contact">联系</a></nav><button class="menu-button" type="button" aria-label="打开导航菜单" aria-expanded="false"><span></span><span></span></button></header>
     <main id="top">
-      <p class="preview-notice">页面内容已同步自 GitHub：项目版本、下载链接与发布说明会随仓库迭代更新。</p>
+      <p class="preview-notice">版本信息核对于 2026-10-21。此页下载按钮对应所示版本，后续更新请查看各项目的“最新发布与说明”。</p>
       <section class="hero section-grid" aria-labelledby="hero-title"><div class="hero-aside rail-label">独立开发 / ${new Date().getFullYear()}</div><div class="hero-main"><p class="kicker"><span class="pulse"></span>两个正在迭代的桌面项目</p><h1 id="hero-title">把工具，<br /><em>做得更好用。</em></h1><p class="hero-copy">你好，我是 <span class="editable">ssk-shandm</span>。我在做实用的桌面软件：一个帮助学习和整理题库，一个帮助下载和管理媒体内容。</p><div class="hero-actions"><a class="button button-dark" href="#projects">查看项目 <span>↓</span></a><a class="text-link" href="https://github.com/ssk-shandm" target="_blank" rel="noreferrer">GitHub 主页 <span>↗</span></a></div></div><div class="hero-stamp" aria-hidden="true"><span>BUILD<br />SHIP<br />IMPROVE<br /><b>REPEAT</b></span><i>✳</i></div></section>
       <section class="ticker" aria-label="项目状态"><div class="ticker-track"><span>OPEN SOURCE</span><b>✳</b><span>WINDOWS TOOLS</span><b>✳</b><span>SHIPPING UPDATES</span><b>✳</b><span>OPEN SOURCE</span><b>✳</b></div></section>
-      <section class="work section-grid" id="projects" aria-labelledby="projects-title"><div class="section-intro"><p class="rail-label">项目 / 01—02</p><h2 id="projects-title">正在做<br /><span>的工具。</span></h2><p class="section-note">每个项目都在持续发布。下载最新版本，或进入仓库查看完整说明。</p></div><div class="project-list">${projects.map((project) => `<article class="project-card ${project.tone}"><div class="project-meta"><span>${project.no}</span><span>${project.type}</span></div><div class="project-body"><h3>${project.title}</h3><p>${project.description}</p><div class="tag-list">${project.tags.map((tag) => `<span>${tag}</span>`).join('')}</div></div><div class="project-footer"><div class="project-actions"><a class="download-link" href="${project.download}">↓ 下载 Windows 安装包</a><a class="source-link" href="${project.source}" target="_blank" rel="noreferrer">查看 GitHub ↗</a><small>${project.note}</small></div><span class="project-arrow">↗</span></div></article>`).join('')}</div></section>
+      <section class="work section-grid" id="projects" aria-labelledby="projects-title"><div class="section-intro"><h2 id="projects-title">正在做<br /><span>的工具。</span></h2><p class="section-note">下载已发布的安装包，或进入仓库查看功能、使用文档与后续更新。</p></div><div class="project-list">${projects.map(renderProject).join('')}</div></section>
       <section class="about section-grid" id="about" aria-labelledby="about-title"><div class="about-slice"><span class="big-asterisk">✳</span><span>ABOUT<br />THE<br />BUILDER</span></div><div class="about-copy"><p class="rail-label">关于 / 开发者</p><h2 id="about-title">先解决问题，<br /><em>再打磨细节。</em></h2><p>我喜欢把一个真实需求拆开，做成可以被使用、被反馈、再被改进的工具。别卷和 GrabMeta 都是公开迭代中的项目，欢迎试用、提 Issue，或者直接参与讨论。</p><a class="text-link" href="https://github.com/ssk-shandm" target="_blank" rel="noreferrer">查看 GitHub 主页 <span>↗</span></a></div><div class="about-facts"><div><strong>02</strong><span>正在迭代的项目</span></div><div><strong>MIT</strong><span>两个仓库均采用 MIT License</span></div><div><strong>∞</strong><span>持续修复、发布与改进</span></div></div></section>
-      <section class="contact section-grid" id="contact" aria-labelledby="contact-title"><div class="contact-lead"><p class="rail-label">联系 / 一起改进</p><h2 id="contact-title">发现问题<br /><em>就提出来。</em></h2></div><div class="contact-card"><p>项目反馈、功能建议和 Bug 报告，优先通过 GitHub Issues 提交；也可以在仓库里发起讨论。</p><a class="email" href="https://github.com/ssk-shandm/Biejuan/issues" target="_blank" rel="noreferrer">打开 Issues <span>↗</span></a><div class="socials"><a href="https://github.com/ssk-shandm" target="_blank" rel="noreferrer">github.com/ssk-shandm</a></div></div></section>
+      <section class="contact section-grid" id="contact" aria-labelledby="contact-title"><div class="contact-lead"><h2 id="contact-title">发现问题<br /><em>就提出来。</em></h2></div><div class="contact-card"><p>遇到 Bug 或有功能建议，请在对应仓库提交 Issue，附上应用版本、复现步骤和错误信息。请勿公开密钥或私人资料。</p><div class="issue-links"><a href="https://github.com/ssk-shandm/Biejuan/issues" target="_blank" rel="noreferrer">别卷 Issues</a><a href="https://github.com/ssk-shandm/GrabMeta/issues" target="_blank" rel="noreferrer">GrabMeta Issues</a></div><div class="socials"><a href="https://github.com/ssk-shandm" target="_blank" rel="noreferrer">github.com/ssk-shandm</a></div></div></section>
     </main><footer class="footer"><span>© ${new Date().getFullYear()} ssk-shandm</span><span>Built in public <b>✳</b></span><a href="#top">回到顶部 ↑</a></footer>
   </div>`
 
