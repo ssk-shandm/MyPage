@@ -31,7 +31,9 @@ npm run dev
 
 ## 项目数据维护
 
-项目介绍与静态兜底信息位于 `src/main.js`，对应 `ssk-shandm/Biejuan` 与 `ssk-shandm/GrabMeta`。颜色、字体与间距集中在 `src/style.css` 顶部的变量中。项目介绍仍需手动维护，版本信息自动更新。
+项目介绍与静态兜底信息位于 `src/data/projects.js`，对应 `ssk-shandm/Biejuan` 与 `ssk-shandm/GrabMeta`。颜色、字体、间距与字号尺度集中在 `src/style.css` 顶部的变量中。项目介绍仍需手动维护，版本信息自动更新。
+
+页面使用 Vue 3（`<script setup>`）构建，组件在 `src/components/`：顶栏、Hero、跑马灯、项目区、关于、联系、页脚。`src/App.vue` 负责组装并通过 `src/composables/useReleases.js` 拉取版本信息；`src/lib/apply-releases.js` 是不依赖 DOM 的纯函数，负责校验并合并远端数据，单元测试直接覆盖它。
 
 ## 自动更新版本与下载
 

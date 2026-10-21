@@ -1,21 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { updateReleases } from '../src/release-updates.js'
+import { applyReleaseData, formatSize, NOTICES } from '../src/lib/apply-releases.js'
+import { projects as staticProjects } from '../src/data/projects.js'
 
-function documentFixture() {
-  const selectors = ['[data-version]', '.download-link', '.release-info', '[data-release-link]', '.release-summary', '[data-download-note]']
-  const elements = Object.fromEntries(['biejuan', 'grabmeta'].map(id => [id,
-    Object.fromEntries(selectors.map(selector => [selector, { textContent: 'original', href: 'original' }]))]))
-  const notice = { textContent: '' }
-  return {
-    elements, notice,
-    querySelector(selector) {
-      if (selector === '.preview-notice') return notice
-      const id = selector.includes('biejuan') ? 'biejuan' : 'grabmeta'
-      return { querySelector: key => elements[id][key] }
-    },
-  }
-}
 function release(id, installer = true) {
   const repo = id === 'biejuan' ? 'Biejuan' : 'GrabMeta'
   return {
@@ -30,46 +17,51 @@ function release(id, installer = true) {
     },
   }
 }
+const payload = (overrides = {}) => ({ projects: { biejuan: release('biejuan'), grabmeta: release('grabmeta'), ...overrides } })
+const byId = (list, id) => list.find((project) => project.id === id)
 
-test('frontend updates both cards, metadata and version-specific release links', async () => {
-  const doc = documentFixture()
-  await updateReleases(doc, async () => Response.json({ projects: { biejuan: release('biejuan'), grabmeta: release('grabmeta') } }))
-  assert.equal(doc.elements.biejuan['[data-version]'].textContent, 'v9.0.0')
-  assert.ok(doc.elements.biejuan['.download-link'].href.includes('/v9.0.0/'))
-  assert.match(doc.elements.grabmeta['.release-info'].textContent, /10.00 MiB/)
-  assert.match(doc.elements.grabmeta['[data-release-link]'].href, /tag\/v9.0.0$/)
-  assert.match(doc.notice.textContent, /15/)
+test('updates both cards, metadata and version-specific release links', () => {
+  const result = applyReleaseData(payload(), staticProjects)
+  const biejuan = byId(result.projects, 'biejuan')
+  const grabmeta = byId(result.projects, 'grabmeta')
+  assert.equal(biejuan.version, 'v9.0.0')
+  assert.ok(biejuan.downloadUrl.includes('/v9.0.0/'))
+  assert.equal(grabmeta.info, '10.00 MiB / 2026-10-22（UTC）')
+  assert.match(biejuan.releaseUrl, /tag\/v9\.0\.0$/)
+  assert.match(result.notice, /15/)
+  assert.equal(result.updated, 2)
 })
 
-test('frontend sends releases without installers to the release page, never to an older installer', async () => {
-  const doc = documentFixture()
-  const item = release('biejuan', false)
-  await updateReleases(doc, async () => Response.json({ projects: { biejuan: item } }))
-  assert.equal(doc.elements.biejuan['.download-link'].href, item.release.releaseUrl)
-  assert.match(doc.elements.biejuan['.download-link'].textContent, /暂无/)
-  assert.equal(doc.elements.grabmeta['[data-version]'].textContent, 'original')
-  assert.match(doc.notice.textContent, /部分/)
+test('sends releases without installers to the release page, never to an older installer', () => {
+  const result = applyReleaseData({ projects: { biejuan: release('biejuan', false) } }, staticProjects)
+  const biejuan = byId(result.projects, 'biejuan')
+  assert.equal(biejuan.downloadUrl, release('biejuan').release.releaseUrl)
+  assert.match(biejuan.downloadLabel, /暂无/)
+  assert.equal(byId(result.projects, 'grabmeta').version, 'v2.3.2')
+  assert.equal(result.notice, NOTICES.partial)
 })
 
-test('frontend keeps static metadata on offline, HTML fallback, server errors and invalid URLs', async () => {
+test('rejects invalid release data and leaves static metadata untouched', () => {
   const bad = release('biejuan')
   bad.release.installer.url = 'https://evil.test/app_x64-setup.exe'
-  for (const fetcher of [async () => { throw Error('offline') },
-    async () => new Response('<html>SPA fallback</html>'),
-    async () => new Response('', { status: 500 }),
-    async () => Response.json({ projects: { biejuan: bad } })]) {
-    const doc = documentFixture()
-    await updateReleases(doc, fetcher)
-    assert.equal(doc.elements.biejuan['[data-version]'].textContent, 'original')
-    assert.equal(doc.elements.biejuan['.download-link'].href, 'original')
-    assert.match(doc.notice.textContent, /无法同步/)
+  for (const data of [
+    null,
+    {},
+    { projects: { biejuan: bad } },
+    { projects: { biejuan: { ...release('biejuan'), release: { ...release('biejuan').release, releaseUrl: 'https://evil.test/x' } } } },
+    { projects: { biejuan: { ...release('biejuan'), release: { ...release('biejuan').release, publishedAt: 'nope' } } } },
+  ]) {
+    assert.throws(() => applyReleaseData(data, staticProjects), /No valid release information/)
   }
 })
 
-test('frontend labels stale cached results honestly', async () => {
-  const doc = documentFixture()
-  await updateReleases(doc, async () => Response.json({ projects: {
-    biejuan: { ...release('biejuan'), status: 'stale' }, grabmeta: release('grabmeta'),
-  } }))
-  assert.match(doc.notice.textContent, /最近一次/)
+test('labels stale cached results honestly', () => {
+  const result = applyReleaseData(payload({ biejuan: { ...release('biejuan'), status: 'stale' } }), staticProjects)
+  assert.equal(result.notice, NOTICES.stale)
+  assert.equal(result.stale, true)
+})
+
+test('formats installer sizes in MiB with two decimals', () => {
+  assert.equal(formatSize(10485760), '10.00 MiB')
+  assert.equal(formatSize(6815744), '6.50 MiB')
 })

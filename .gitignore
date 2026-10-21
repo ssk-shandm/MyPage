@@ -3,6 +3,8 @@ dist
 .DS_Store
 .impeccable/review/
 .wrangler/
+.preview/
+.acl-report/
 .dev.vars
 .dev.vars.*
 .env
