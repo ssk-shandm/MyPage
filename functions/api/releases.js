@@ -25,7 +25,9 @@ function upstreamFailure(response, now) {
 export async function getProjectRelease(id, { cache, origin, fetcher, now, token }) {
   const repository = repositories[id]
   // Ignore visitor query parameters so they cannot bypass the cache or choose a repository.
-  const key = new Request(`${origin}/__release-cache/v2/${id}`)
+  // Bump the version whenever the cached shape changes: a cached record also carries the
+  // parsed release, and a 304 reuses it, so stale entries survive code changes otherwise.
+  const key = new Request(`${origin}/__release-cache/v3/${id}`)
   let previous = null
   let retryAt = 0
   let lastError = null
