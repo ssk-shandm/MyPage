@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { normalizeRelease, isValidRelease, repositories, extractReleaseSummary, validateSummary } from '../lib/releases.js'
+import { normalizeRelease, isValidRelease, repositories, extractReleaseSummary, validateSummary, SUMMARY_MAX_ITEMS } from '../lib/releases.js'
 import { readFileSync } from 'node:fs'
 import { getProjectRelease, FRESH_MS, RETAIN_SECONDS } from '../functions/api/releases.js'
 
@@ -49,7 +49,7 @@ test('missing, misplaced, empty or malformed summary does not guess from detaile
   for (const body of [null, '', '旧版更新内容', '## 修复\n- 改动\n## 更新摘要\n- 不该被找到',
     '```md\n## 更新摘要\n- 示例\n```', '介绍文字\n## 更新摘要\n- 新增',
     '## 更新摘要\n\n## 详细更新\n- 细节', '## 更新摘要\n说明段落',
-    '## 更新摘要\n- 第一行\n  第二行', '## 更新摘要\n- 第一条\n- 第二条\n- 第三条\n- 第四条',
+    '## 更新摘要\n- 第一行\n  第二行',
     '## 更新摘要\n- ```js\nalert(1)\n```', '## 更新摘要\n- <script>alert(1)</script>',
     '## 更新摘要\n- [链接](https://example.com)', '## 更新摘要\n- **加粗**',
     '## 更新摘要\n| 项目 | 内容 |']) {
@@ -57,11 +57,21 @@ test('missing, misplaced, empty or malformed summary does not guess from detaile
   }
 })
 
-test('enforces a total 200-codepoint summary limit without truncation or splitting emoji', () => {
-  assert.deepEqual(extractReleaseSummary('## 更新摘要\n- ' + '🙂'.repeat(200)), ['🙂'.repeat(200)])
-  assert.deepEqual(extractReleaseSummary('## 更新摘要\n- ' + '中'.repeat(201)), [])
-  assert.deepEqual(validateSummary(['中'.repeat(100), '文'.repeat(101)]), [])
-  for (const items of [null, 'text', [], [null], [''], ['one\ntwo'], ['one\ttwo'], ['a', 'b', 'c', 'd']]) {
+test('keeps every bullet up to the summary caps instead of discarding the whole list', () => {
+  // 真实 v0.2.3 正文就是 5 条 237 字，旧规则会整段丢弃。
+  const five = '## 更新摘要\n' + Array.from({ length: 5 }, (_, i) => `- 第${i + 1}条更新内容。`).join('\n')
+  assert.deepEqual(extractReleaseSummary(five).length, 5)
+  // 超出上限时保留前几条，而不是全部作废。
+  const many = '## 更新摘要\n' + Array.from({ length: 12 }, (_, i) => `- 第${i + 1}条更新内容。`).join('\n')
+  assert.equal(extractReleaseSummary(many).length, SUMMARY_MAX_ITEMS)
+  assert.equal(validateSummary(Array.from({ length: 12 }, (_, i) => `第${i + 1}条更新内容。`)).length, SUMMARY_MAX_ITEMS)
+})
+
+test('enforces summary caps without truncating an individual bullet or splitting emoji', () => {
+  assert.deepEqual(extractReleaseSummary('## 更新摘要\n- ' + '🙂'.repeat(400)), ['🙂'.repeat(400)])
+  assert.deepEqual(extractReleaseSummary('## 更新摘要\n- ' + '中'.repeat(401)), [])
+  assert.deepEqual(validateSummary(['中'.repeat(300), '文'.repeat(101)]), ['中'.repeat(300)])
+  for (const items of [null, 'text', [], [null], [''], ['one\ntwo'], ['one\ttwo']]) {
     assert.deepEqual(validateSummary(items), [])
   }
 })

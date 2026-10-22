@@ -132,7 +132,7 @@ test('merges the validated release summary without changing the project introduc
 })
 
 test('invalid summaries do not block version updates or keep an old version summary', () => {
-  for (const summary of [undefined, null, '<script>bad</script>', ['x'.repeat(201)], ['<img src=x onerror=alert(1)>'], ['a', 'b', 'c', 'd']]) {
+  for (const summary of [undefined, null, '<script>bad</script>', ['x'.repeat(401)], ['<img src=x onerror=alert(1)>'], ['a\nb']]) {
     const biejuan = release('biejuan')
     biejuan.release.summary = summary
     const initial = staticProjects.map(project => ({ ...project, summaryItems: ['旧版本的摘要。'] }))
@@ -142,4 +142,13 @@ test('invalid summaries do not block version updates or keep an old version summ
     assert.equal(project.version, 'v9.0.0')
     assert.match(project.summary, /请查看本版本发布说明/)
   }
+})
+
+test('a summary longer than the old caps still reaches the card', () => {
+  // 回归：真实 v0.2.3 是 5 条 237 字，旧规则整段丢弃。
+  const biejuan = release('biejuan')
+  biejuan.release.summary = Array.from({ length: 5 }, (_, i) => `第${i + 1}条更新内容，描述本次真实变化。`)
+  const project = byId(applyReleaseData(payload({ biejuan }), staticProjects).projects, 'biejuan')
+  assert.equal(project.summaryItems.length, 5)
+  assert.equal(project.summaryItems[0], '第1条更新内容，描述本次真实变化。')
 })

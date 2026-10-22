@@ -11,16 +11,16 @@ export const projects = [
     tags: ['Vue 3', 'Tauri 2', 'Windows'],
     tone: 'coral',
     source: 'https://github.com/ssk-shandm/Biejuan',
-    version: 'v0.2.2',
+    version: 'v0.2.3',
     downloadUrl:
-      'https://github.com/ssk-shandm/Biejuan/releases/download/v0.2.2/biejuan-0.2.2-x64-setup.exe',
+      'https://github.com/ssk-shandm/Biejuan/releases/download/v0.2.3/biejuan-0.2.3-x64-setup.exe',
     downloadHref:
-      'https://ghproxy.net/https://github.com/ssk-shandm/Biejuan/releases/download/v0.2.2/biejuan-0.2.2-x64-setup.exe',
-    releaseUrl: 'https://github.com/ssk-shandm/Biejuan/releases/tag/v0.2.2',
+      'https://ghproxy.net/https://github.com/ssk-shandm/Biejuan/releases/download/v0.2.3/biejuan-0.2.3-x64-setup.exe',
+    releaseUrl: 'https://github.com/ssk-shandm/Biejuan/releases/tag/v0.2.3',
     downloadLabel: '下载 Windows x64 安装包',
     hasInstaller: true,
     info: '6.50 MiB / 2026-10-21',
-    summary: '本次更新：兼容本地网关模型列表的多种返回格式，修复聊天接口地址拼接，改进网关配置提示。',
+    summary: '本次更新：修复文件拖入与终端高度问题，放宽文档转换的题目校验，精简转换页面。',
     note: '仅 Windows x64；安装包未签名。此版本不提供 Android 或便携包；升级前建议导出全量备份，真实 Windows 安装与升级验收仍待完成。',
   },
   {
